@@ -9,3 +9,7 @@ class TopicName(str, Enum):
 class ReactionName(str, Enum):
     LIKE = "like"
     DISLIKE = "dislike"
+
+class Status(str, Enum):
+    LIVE = "Live"
+    EXPIRED = "Expired"

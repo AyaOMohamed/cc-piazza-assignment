@@ -88,6 +88,8 @@ class ReactionType(Base):
     id = Column(Integer, primary_key=True, index=True)
     name = Column(String, unique=True, nullable=False)
 
+    reactions = relationship("Reaction", back_populates="reaction_type")
+
 
 class Reaction(Base):
     __tablename__ = "reactions"
@@ -97,3 +99,4 @@ class Reaction(Base):
     user_id = Column(Integer, ForeignKey("users.id"), primary_key=True, nullable=False)
 
     post = relationship("Post", back_populates="reactions")
+    reaction_type = relationship("ReactionType", back_populates="reactions")

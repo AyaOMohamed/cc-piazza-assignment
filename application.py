@@ -11,7 +11,7 @@ def create_app(db_engine=engine):
     app = FastAPI()
     app.include_router(auth.router, prefix="/auth")
     app.include_router(posts.router, prefix="/posts")
-    # app.include_router(topics.router, prefix="/topics")
+    app.include_router(topics.router, prefix="/topics")
 
 
     @app.get("/health")
