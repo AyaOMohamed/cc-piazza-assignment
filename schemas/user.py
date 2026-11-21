@@ -1,4 +1,5 @@
-from pydantic import BaseModel, ConfigDict, EmailStr, Field
+from pydantic import BaseModel, ConfigDict, EmailStr, Field, field_validator
+from schemas.validators import validate_non_empty_text
 
 
 # Request body for registration.
@@ -6,6 +7,10 @@ class UserCreate(BaseModel):
     username: str = Field(min_length=3, max_length=50)
     email: EmailStr
     password: str = Field(min_length=6)
+
+    _validate_body = field_validator("username")(
+        validate_non_empty_text
+    )
 
 
 # Request body for login.

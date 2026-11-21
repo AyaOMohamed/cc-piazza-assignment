@@ -2,6 +2,7 @@ import datetime
 from pydantic import BaseModel, ConfigDict, field_validator
 from schemas.validators import validate_non_empty_text
 
+
 # Request body for comment creation.
 class CommentCreate(BaseModel):
     body: str

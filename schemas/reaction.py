@@ -1,5 +1,3 @@
-# schemas/reaction.py
-
 from pydantic import BaseModel
 from constants import ReactionName
 

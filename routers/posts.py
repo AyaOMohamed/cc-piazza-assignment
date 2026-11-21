@@ -166,8 +166,8 @@ def set_or_replace_reaction(
     post_response = build_post_response(post)
 
     return ReactionCountsResponse(
-        like_count=post_response["like_count"],
-        dislike_count=post_response["dislike_count"]
+        like_count=post_response.like_count,
+        dislike_count=post_response.dislike_count
     )
 
 @router.post("/{post_id}/comments", response_model=CommentResponse, status_code=201)
