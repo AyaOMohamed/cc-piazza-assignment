@@ -31,13 +31,14 @@ def register(user: UserCreate, db: Session = Depends(get_db)):
         hashed_password=hash_password(user.password)
     )
 
-    # Save the new user and reload it so the generated ID is available.
+    # Add the new user to db
     db.add(db_user)
     try:
         db.commit()
     except IntegrityError:
         db.rollback()
         raise HTTPException(status_code=409, detail="Email already registered")
+    # Ensure the returned user reflects the persisted database state.
     db.refresh(db_user)
     return db_user
 

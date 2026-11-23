@@ -6,11 +6,13 @@ from security import get_current_user
 from schemas.post import PostResponse, build_post_response
 from constants import TopicName
 from sqlalchemy import func
+from sqlalchemy.orm import Session
+
 
 router = APIRouter()
 
 
-@router.get("/{topic}/most-active", response_model=list[PostResponse], status_code=201)
+@router.get("/{topic}/most-active", response_model=list[PostResponse], status_code=200)
 def most_active_live_post(
     topic: TopicName,
     db: Session = Depends(get_db),
@@ -27,6 +29,7 @@ def most_active_live_post(
 
     # Outer select query
     # Find the most-active live post in the selected topic
+    # Rank posts by reaction count, using creation timestamp and post ID to resolve ties.
     post = (
         db.query(models.Post)
         .filter(
@@ -37,7 +40,8 @@ def most_active_live_post(
         )
         .order_by(
             reaction_count.desc(),
-            models.Post.created_at.desc()
+            models.Post.created_at.desc(),
+            models.Post.id.asc()
         )
         .first()
     )

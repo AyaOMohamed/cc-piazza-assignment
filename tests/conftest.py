@@ -11,6 +11,7 @@ from sqlalchemy.orm import sessionmaker
 from application import create_app
 from database import get_db
 
+
 @pytest.fixture
 def client(tmp_path):
     engine = create_engine(
@@ -18,7 +19,11 @@ def client(tmp_path):
         connect_args={"check_same_thread": False},
     )
     sessions = sessionmaker(bind=engine)
-    app = create_app(engine)
+
+    app = create_app(
+        db_engine=engine,
+        session_factory=sessions
+    )
 
     def override_db():
         with sessions() as session:

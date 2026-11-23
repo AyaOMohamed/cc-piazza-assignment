@@ -7,6 +7,7 @@ from schemas.post import PostCreate, PostResponse, build_post_response
 from schemas.reaction import ReactionCreate, ReactionCountsResponse
 from schemas.comment import CommentCreate, CommentResponse
 from sqlalchemy.exc import IntegrityError
+from sqlalchemy.orm import Session
 from constants import TopicName, Status
 
 router = APIRouter()
@@ -81,10 +82,10 @@ def get_posts(
     # Filter by status
     now = datetime.now()
 
-    if status == "Live":
+    if status == Status.LIVE:
         query = query.filter(models.Post.expires_at > now)
 
-    elif status == "Expired":
+    elif status == Status.EXPIRED:
         query = query.filter(models.Post.expires_at <= now)
 
     db_posts = query.all()
@@ -185,7 +186,7 @@ def add_comment(
 
     # Check whether the post has expired
     if post.expires_at <= datetime.now():
-        raise HTTPException(status_code=409, detail="Cannot commnet on an expired post")
+        raise HTTPException(status_code=409, detail="Cannot comment on an expired post")
 
     # Create a new comment
     new_comment = models.Comment(
