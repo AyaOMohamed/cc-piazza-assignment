@@ -24,7 +24,7 @@ def test_register_valid_user(client):
     "missing_field",
     ["password", "username", "email"]
 )
-def test_register_missing_field(client, missing_field):
+def test_register_missing_field_returns_422(client, missing_field):
     body = USER.copy()
     del body[missing_field]
 

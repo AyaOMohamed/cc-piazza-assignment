@@ -2,7 +2,7 @@ from datetime import datetime
 from pydantic import BaseModel, Field, ConfigDict, field_validator
 from schemas.validators import validate_non_empty_text, validate_expiration
 from constants import TopicName, ReactionName, Status
-
+import clock
 
 # Request body for post creation.
 class PostCreate(BaseModel):
@@ -44,7 +44,7 @@ class PostResponse(BaseModel):
 
 # Response builder
 def build_post_response(post) -> PostResponse:
-    now = datetime.now()
+    now = clock.get_current_time()
 
     likes = sum(
         1 for reaction in post.reactions
@@ -64,7 +64,11 @@ def build_post_response(post) -> PostResponse:
         topics=[topic.name for topic in post.topics],
         created_at=post.created_at,
         expires_at=post.expires_at,
-        status=Status.LIVE if post.expires_at > now else Status.EXPIRED,
+        status = (
+            Status.EXPIRED
+            if post.expires_at <= clock.get_current_time()
+            else Status.LIVE
+        ),
         like_count=likes,
         dislike_count=dislikes,
         comments=[comment.body for comment in post.comments]

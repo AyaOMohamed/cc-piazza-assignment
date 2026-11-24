@@ -1,4 +1,3 @@
-from datetime import datetime
 import models
 from database import get_db
 from fastapi import APIRouter, Depends, HTTPException, Query
@@ -9,6 +8,7 @@ from schemas.comment import CommentCreate, CommentResponse
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 from constants import TopicName, Status
+import clock
 
 router = APIRouter()
 
@@ -38,7 +38,7 @@ def create_post(
         user_id=current_user.id,
         title=post.title,
         body=post.body,
-        created_at=datetime.now(),
+        created_at=clock.get_current_time(),
         expires_at=post.expires_at,
         topics=db_topics
     )
@@ -62,7 +62,6 @@ def create_post(
 
     return build_post_response(db_post)
 
-
 @router.get("/", response_model=list[PostResponse], status_code=200)
 def get_posts(
     topic: TopicName | None = Query(default=None),
@@ -80,7 +79,7 @@ def get_posts(
         )
 
     # Filter by status
-    now = datetime.now()
+    now = clock.get_current_time()
 
     if status == Status.LIVE:
         query = query.filter(models.Post.expires_at > now)
@@ -121,7 +120,7 @@ def set_or_replace_reaction(
         raise HTTPException(status_code=404, detail="Post not found")
 
     # Check whether the post has expired
-    if post.expires_at <= datetime.now():
+    if post.expires_at <= clock.get_current_time():
         raise HTTPException(status_code=409, detail="Cannot react to an expired post")
 
     # Prevent the author from reacting to their own post
@@ -185,7 +184,7 @@ def add_comment(
         raise HTTPException(status_code=404, detail="Post not found")
 
     # Check whether the post has expired
-    if post.expires_at <= datetime.now():
+    if post.expires_at <= clock.get_current_time():
         raise HTTPException(status_code=409, detail="Cannot comment on an expired post")
 
     # Create a new comment
@@ -193,7 +192,7 @@ def add_comment(
         post_id=post_id,
         user_id=current_user.id,
         body=comment.body,
-        created_at=datetime.now()
+        created_at=clock.get_current_time()
     )
     db.add(new_comment)
 

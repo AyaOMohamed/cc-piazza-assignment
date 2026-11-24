@@ -5,6 +5,7 @@ import time
 import pytest
 
 from constants import TopicName, ReactionName, Status
+import clock
 
 
 USER_1 = {
@@ -48,7 +49,7 @@ def auth_headers(token):
 
 def create_post(client, token, title, expires_at=None):
     if expires_at is None:
-        expires_at = datetime.now() + timedelta(days=1)
+        expires_at = clock.get_current_time() + timedelta(days=1)
 
     response = client.post(
         "/posts/",
@@ -113,14 +114,16 @@ def test_most_active_returns_post_with_most_reactions(client):
     assert posts[0]["id"] == post_1["id"]
     assert posts[0]["like_count"] == 2
 
-def test_most_active_returns_newest_post_when_reaction_counts_tie(client):
+def test_most_active_returns_newest_post_when_reaction_counts_tie(
+    client, mock_clock
+):
     token_1 = register_and_login(client, USER_1)
     token_2 = register_and_login(client, USER_2)
 
     post_1 = create_post(client, token_1, "Older post")
 
-    # Ensure the posts have different creation timestamps.
-    time.sleep(0.02)
+    # Advance the clock before creating the second post.
+    mock_clock[0] += timedelta(seconds=1)
 
     post_2 = create_post(client, token_1, "Newer post")
 
@@ -135,7 +138,7 @@ def test_most_active_returns_newest_post_when_reaction_counts_tie(client):
     assert response.status_code == 200
     assert response.json()[0]["id"] == post_2["id"]
 
-def test_most_active_excludes_expired_posts(client):
+def test_most_active_excludes_expired_posts(client, mock_clock):
     token_1 = register_and_login(client, USER_1)
     token_2 = register_and_login(client, USER_2)
 
@@ -143,15 +146,18 @@ def test_most_active_excludes_expired_posts(client):
         client,
         token_1,
         "Expired post",
-        datetime.now() + timedelta(seconds=1),
+        mock_clock[0] + timedelta(seconds=1),
     )
 
     # React while the post is still live.
-    assert react_to_post(client, token_2, expired_post["id"]).status_code == 200
+    assert react_to_post(
+        client, token_2, expired_post["id"]
+    ).status_code == 200
 
     live_post = create_post(client, token_1, "Live post")
 
-    time.sleep(2)  # Ensure the first post is expired
+    # Move time forward beyond the first post's expiry.
+    mock_clock[0] += timedelta(seconds=2)
 
     response = client.get(
         f"/topics/{TopicName.TECH.value}/most-active",
@@ -164,7 +170,6 @@ def test_most_active_excludes_expired_posts(client):
     assert len(posts) == 1
     assert posts[0]["id"] == live_post["id"]
 
-
 def test_most_active_returns_422_for_invalid_topic(client):
     token = register_and_login(client, USER_1)
 
@@ -174,7 +179,6 @@ def test_most_active_returns_422_for_invalid_topic(client):
     )
 
     assert response.status_code == 422
-
 
 def test_most_active_requires_authentication(client):
     response = client.get("/topics/Tech/most-active")

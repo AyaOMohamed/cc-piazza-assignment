@@ -1,8 +1,10 @@
 import pytest
-import time
 from datetime import datetime, timedelta
 
+import clock
+
 from constants import TopicName, Status, ReactionName
+
 
 USER = {
     "username": "user1",
@@ -32,6 +34,7 @@ def register_and_login(client, user=USER):
         }
     )
 
+    assert response.status_code == 200
     return response.json()["access_token"]
 
 def auth_headers(token):
@@ -41,9 +44,16 @@ def create_post_body(**overrides):
     body = {
         "title": "Test post title",
         "body": "This is a valid test post body.",
-        "topics": ["Tech"],
-        "expires_at": (datetime.now() + timedelta(days=1)).isoformat()
+        "topics": [TopicName.TECH.value],
+        "expires_at": (
+            clock.get_current_time() + timedelta(days=1)
+        ).isoformat()
     }
+
+    # Convert datetime overrides to ISO format for JSON serialization.
+    if "expires_at" in overrides and isinstance(overrides["expires_at"], datetime):
+        overrides["expires_at"] = overrides["expires_at"].isoformat()
+
     body.update(overrides)
     return body
 
@@ -60,7 +70,7 @@ def test_create_post_success(client):
         headers=auth_headers(token)
     )
 
-    assert response.status_code == 201
+    assert response.status_code == 201, response.json()
 
     data = response.json()
 
@@ -68,11 +78,12 @@ def test_create_post_success(client):
     assert data["author"] == USER["username"]
     assert data["title"] == "Test post title"
     assert data["body"] == "This is a valid test post body."
-    assert data["topics"] == [TopicName.TECH]
+    assert data["topics"] == [TopicName.TECH.value]
     assert data["like_count"] == 0
     assert data["dislike_count"] == 0
     assert data["comments"] == []
-    assert data["status"] == Status.LIVE
+    assert data["status"] == Status.LIVE.value
+
 
 @pytest.mark.parametrize(
     "field, value",
@@ -83,7 +94,7 @@ def test_create_post_success(client):
         ("body", "   "),
         ("topics", []),
         ("topics", ["Invalid"]),
-        ("expires_at", (datetime.now() - timedelta(days=1)).isoformat()),
+        ("expires_at", datetime(2000, 1, 1).isoformat()),
         ("expires_at", "invalid-date"),
     ]
 )
@@ -155,7 +166,7 @@ def test_get_posts_filter_by_topic(client):
 
     client.post(
         "/posts/",
-        json=create_post_body(topics=[TopicName.TECH]),
+        json=create_post_body(topics=[TopicName.TECH.value]),
         headers=auth_headers(token)
     )
 
@@ -163,7 +174,7 @@ def test_get_posts_filter_by_topic(client):
         "/posts/",
         json=create_post_body(
             title="Health post",
-            topics=[TopicName.HEALTH]
+            topics=[TopicName.HEALTH.value]
         ),
         headers=auth_headers(token)
     )
@@ -175,16 +186,14 @@ def test_get_posts_filter_by_topic(client):
 
     assert response.status_code == 200
     assert len(response.json()) == 1
-    assert response.json()[0]["topics"] == [TopicName.TECH]
+    assert response.json()[0]["topics"] == [TopicName.TECH.value]
 
-def test_get_posts_filter_by_live_status(client):
+def test_get_posts_filter_by_live_status(client, mock_clock):
     token = register_and_login(client)
 
     client.post(
         "/posts/",
-        json=create_post_body(
-            expires_at=(datetime.now() + timedelta(days=1)).isoformat()
-        ),
+        json=create_post_body(),
         headers=auth_headers(token)
     )
 
@@ -192,12 +201,15 @@ def test_get_posts_filter_by_live_status(client):
         "/posts/",
         json=create_post_body(
             title="Expired post",
-            expires_at=(datetime.now() + timedelta(seconds=1)).isoformat()
+            expires_at=(
+                clock.get_current_time() + timedelta(seconds=1)
+            ).isoformat()
         ),
         headers=auth_headers(token)
     )
 
-    time.sleep(2)  # Ensure the second post is expired
+    # Advance time beyond the second post's expiry.
+    mock_clock[0] += timedelta(seconds=2)
 
     response = client.get(
         f"/posts/?status={Status.LIVE.value}",
@@ -206,17 +218,15 @@ def test_get_posts_filter_by_live_status(client):
 
     assert response.status_code == 200
     assert len(response.json()) == 1
-    assert response.json()[0]["status"] == Status.LIVE
+    assert response.json()[0]["status"] == Status.LIVE.value
     assert response.json()[0]["title"] == "Test post title"
 
-def test_get_posts_filter_by_expired_status(client):
+def test_get_posts_filter_by_expired_status(client, mock_clock):
     token = register_and_login(client)
 
     client.post(
         "/posts/",
-        json=create_post_body(
-            expires_at=(datetime.now() + timedelta(days=1)).isoformat()
-        ),
+        json=create_post_body(),
         headers=auth_headers(token)
     )
 
@@ -224,12 +234,15 @@ def test_get_posts_filter_by_expired_status(client):
         "/posts/",
         json=create_post_body(
             title="Expired post",
-            expires_at=(datetime.now() + timedelta(seconds=1)).isoformat()
+            expires_at=(
+                clock.get_current_time() + timedelta(seconds=1)
+            ).isoformat()
         ),
         headers=auth_headers(token)
     )
 
-    time.sleep(2)  # Ensure the second post is expired
+    # Advance time beyond the second post's expiry.
+    mock_clock[0] += timedelta(seconds=2)
 
     response = client.get(
         f"/posts/?status={Status.EXPIRED.value}",
@@ -238,7 +251,7 @@ def test_get_posts_filter_by_expired_status(client):
 
     assert response.status_code == 200
     assert len(response.json()) == 1
-    assert response.json()[0]["status"] == Status.EXPIRED
+    assert response.json()[0]["status"] == Status.EXPIRED.value
     assert response.json()[0]["title"] == "Expired post"
 
 def test_get_posts_invalid_topic_returns_422(client):
@@ -417,20 +430,24 @@ def test_reaction_post_not_found(client):
     assert response.status_code == 404
     assert response.json() == {"detail": "Post not found"}
 
-def test_reaction_expired_post_returns_409(client):
+def test_reaction_expired_post_returns_409(client, mock_clock):
     author_token = register_and_login(client, USER)
     other_token = register_and_login(client, OTHER_USER)
 
     created = client.post(
         "/posts/",
         json=create_post_body(
-            expires_at=(datetime.now() + timedelta(seconds=1)).isoformat()
+            expires_at=(
+                clock.get_current_time() + timedelta(seconds=1)
+            ).isoformat()
         ),
         headers=auth_headers(author_token)
     )
+    assert created.status_code == 201, created.json()
     post_id = created.json()["id"]
 
-    time.sleep(2)  # Ensure the post is expired
+    # Advance time beyond the post's expiry.
+    mock_clock[0] += timedelta(seconds=2)
 
     response = client.put(
         f"/posts/{post_id}/reaction",
@@ -491,6 +508,7 @@ def test_reaction_missing_field_returns_422(client):
     )
 
     assert response.status_code == 422
+
 
 def test_reaction_requires_authentication(client):
     author_token = register_and_login(client, USER)
@@ -592,19 +610,23 @@ def test_add_comment_post_not_found(client):
     assert response.status_code == 404
     assert response.json() == {"detail": "Post not found"}
 
-def test_add_comment_expired_post_returns_409(client):
+def test_add_comment_expired_post_returns_409(client, mock_clock):
     token = register_and_login(client)
 
     created = client.post(
         "/posts/",
         json=create_post_body(
-            expires_at=(datetime.now() + timedelta(seconds=1)).isoformat()
+            expires_at=(
+                clock.get_current_time() + timedelta(seconds=1)
+            ).isoformat()
         ),
         headers=auth_headers(token)
     )
+    assert created.status_code == 201, created.json()
     post_id = created.json()["id"]
 
-    time.sleep(2)  # Ensure the post is expired
+    # Advance time beyond the post's expiry.
+    mock_clock[0] += timedelta(seconds=2)
 
     response = client.post(
         f"/posts/{post_id}/comments",
@@ -623,3 +645,73 @@ def test_add_comment_requires_authentication(client):
 
     assert response.status_code == 401
     assert response.json() == {"detail": "Not authenticated"}
+
+# -------------------------
+# Expiry boundary tests
+# -------------------------
+
+def test_post_is_live_immediately_before_expiry(client, mock_clock):
+    token = register_and_login(client, USER)
+    expiry_time = mock_clock[0] + timedelta(days=1)
+
+    response = client.post(
+        "/posts/",
+        json=create_post_body(expires_at=expiry_time),
+        headers=auth_headers(token),
+    )
+    assert response.status_code == 201
+    post_id = response.json()["id"]
+
+    mock_clock[0] = expiry_time - timedelta(microseconds=1)
+
+    response = client.get(
+        f"/posts/{post_id}",
+        headers=auth_headers(token),
+    )
+
+    assert response.status_code == 200
+    assert response.json()["status"] == Status.LIVE.value
+
+def test_post_is_expired_exactly_at_expiry(client, mock_clock):
+    token = register_and_login(client, USER)
+    expiry_time = mock_clock[0] + timedelta(days=1)
+
+    response = client.post(
+        "/posts/",
+        json=create_post_body(expires_at=expiry_time),
+        headers=auth_headers(token),
+    )
+    assert response.status_code == 201
+    post_id = response.json()["id"]
+
+    mock_clock[0] = expiry_time
+
+    response = client.get(
+        f"/posts/{post_id}",
+        headers=auth_headers(token),
+    )
+
+    assert response.status_code == 200
+    assert response.json()["status"] == Status.EXPIRED.value
+
+def test_post_remains_expired_after_expiry(client, mock_clock):
+    token = register_and_login(client, USER)
+    expiry_time = mock_clock[0] + timedelta(days=1)
+
+    response = client.post(
+        "/posts/",
+        json=create_post_body(expires_at=expiry_time),
+        headers=auth_headers(token),
+    )
+    assert response.status_code == 201
+    post_id = response.json()["id"]
+
+    mock_clock[0] = expiry_time + timedelta(microseconds=1)
+
+    response = client.get(
+        f"/posts/{post_id}",
+        headers=auth_headers(token),
+    )
+
+    assert response.status_code == 200
+    assert response.json()["status"] == Status.EXPIRED.value

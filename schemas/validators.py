@@ -1,5 +1,5 @@
 from datetime import datetime
-
+import clock
 
 def validate_non_empty_text(value: str) -> str:
     if not value.strip():
@@ -9,6 +9,6 @@ def validate_non_empty_text(value: str) -> str:
 
 
 def validate_expiration(value):
-    if value <= datetime.now():
+    if value <= clock.get_current_time():
         raise ValueError("Expiration date must be in the future")
     return value

@@ -10,7 +10,10 @@ from sqlalchemy.orm import sessionmaker
 
 from application import create_app
 from database import get_db
+from datetime import datetime
+from unittest.mock import patch
 
+import clock
 
 @pytest.fixture
 def client(tmp_path):
@@ -36,3 +39,14 @@ def client(tmp_path):
     finally:
         app.dependency_overrides.clear()
         engine.dispose()
+
+@pytest.fixture
+def mock_clock():
+    current_time = [datetime(2026, 1, 1, 12, 0, 0)]
+
+    with patch.object(
+        clock,
+        "get_current_time",
+        side_effect=lambda: current_time[0],
+    ):
+        yield current_time
