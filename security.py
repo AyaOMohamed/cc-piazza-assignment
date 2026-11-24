@@ -42,9 +42,10 @@ def create_access_token(data: dict):
     # Sign and return the JWT.
     return jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
 
+
 def get_current_user(
     credentials: HTTPAuthorizationCredentials | None = Depends(bearer_scheme),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
 ):
     if credentials is None:
         raise HTTPException(status_code=401, detail="Not authenticated")
@@ -55,8 +56,10 @@ def get_current_user(
     try:
         # Decode and verify the JWT.
         payload = jwt.decode(
-            token, SECRET_KEY, algorithms=[ALGORITHM],
-            options={"require": ["exp", "sub"]}
+            token,
+            SECRET_KEY,
+            algorithms=[ALGORITHM],
+            options={"require": ["exp", "sub"]},
         )
 
         # We stored the user's email in the token subject.

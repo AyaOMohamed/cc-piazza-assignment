@@ -4,6 +4,7 @@ from schemas.validators import validate_non_empty_text, validate_expiration
 from constants import TopicName, ReactionName, Status
 import clock
 
+
 # Request body for post creation.
 class PostCreate(BaseModel):
     title: str
@@ -11,17 +12,11 @@ class PostCreate(BaseModel):
     topics: list[TopicName] = Field(min_length=1)
     expires_at: datetime
 
-    _validate_title = field_validator("title")(
-        validate_non_empty_text
-    )
+    _validate_title = field_validator("title")(validate_non_empty_text)
 
-    _validate_body = field_validator("body")(
-        validate_non_empty_text
-    )
-    
-    _validate_expires_at = field_validator("expires_at")(
-        validate_expiration
-    )
+    _validate_body = field_validator("body")(validate_non_empty_text)
+
+    _validate_expires_at = field_validator("expires_at")(validate_expiration)
 
 
 # Response body for a post .
@@ -38,7 +33,6 @@ class PostResponse(BaseModel):
     dislike_count: int
     comments: list[str]
 
-
     model_config = ConfigDict(from_attributes=True)
 
 
@@ -47,12 +41,14 @@ def build_post_response(post) -> PostResponse:
     now = clock.get_current_time()
 
     likes = sum(
-        1 for reaction in post.reactions
+        1
+        for reaction in post.reactions
         if reaction.reaction_type.name == ReactionName.LIKE
     )
 
     dislikes = sum(
-        1 for reaction in post.reactions
+        1
+        for reaction in post.reactions
         if reaction.reaction_type.name == ReactionName.DISLIKE
     )
 
@@ -64,12 +60,12 @@ def build_post_response(post) -> PostResponse:
         topics=[topic.name for topic in post.topics],
         created_at=post.created_at,
         expires_at=post.expires_at,
-        status = (
+        status=(
             Status.EXPIRED
             if post.expires_at <= clock.get_current_time()
             else Status.LIVE
         ),
         like_count=likes,
         dislike_count=dislikes,
-        comments=[comment.body for comment in post.comments]
+        comments=[comment.body for comment in post.comments],
     )

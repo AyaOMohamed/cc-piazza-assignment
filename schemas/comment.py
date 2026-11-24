@@ -7,9 +7,8 @@ from schemas.validators import validate_non_empty_text
 class CommentCreate(BaseModel):
     body: str
 
-    _validate_body = field_validator("body")(
-        validate_non_empty_text
-    )
+    _validate_body = field_validator("body")(validate_non_empty_text)
+
 
 # Response body for comment creation.
 class CommentResponse(BaseModel):

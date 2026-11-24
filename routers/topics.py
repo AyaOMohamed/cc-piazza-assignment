@@ -15,7 +15,7 @@ router = APIRouter()
 def most_active_live_post(
     topic: TopicName,
     db: Session = Depends(get_db),
-    current_user: models.User = Depends(get_current_user)
+    current_user: models.User = Depends(get_current_user),
 ):
     # Inner count query
     # Count all reactions for each post,cregardless of the reaction type
@@ -32,15 +32,11 @@ def most_active_live_post(
     post = (
         db.query(models.Post)
         .filter(
-            models.Post.topics.any(
-                models.Topic.name == topic.value
-            ),
-            models.Post.expires_at > clock.get_current_time()
+            models.Post.topics.any(models.Topic.name == topic.value),
+            models.Post.expires_at > clock.get_current_time(),
         )
         .order_by(
-            reaction_count.desc(),
-            models.Post.created_at.desc(),
-            models.Post.id.asc()
+            reaction_count.desc(), models.Post.created_at.desc(), models.Post.id.asc()
         )
         .first()
     )

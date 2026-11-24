@@ -3,12 +3,7 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 import models
-from schemas.user import (
-    UserCreate,
-    UserResponse,
-    UserLogin,
-    TokenResponse
-)
+from schemas.user import UserCreate, UserResponse, UserLogin, TokenResponse
 from database import get_db
 from security import create_access_token, hash_password, verify_password
 
@@ -18,17 +13,21 @@ router = APIRouter()
 @router.post("/register", response_model=UserResponse, status_code=201)
 def register(user: UserCreate, db: Session = Depends(get_db)):
     # Check whether another user already has this email.
-    existing_user = db.query(models.User).filter(models.User.email == user.email).first()
+    existing_user = (
+        db.query(models.User).filter(models.User.email == user.email).first()
+    )
 
     if existing_user is not None:
-        raise HTTPException(status_code=409, detail="Email address is already registered")
+        raise HTTPException(
+            status_code=409, detail="Email address is already registered"
+        )
 
     # Create a database user.
     # The password is hashed before it is stored.
     db_user = models.User(
         username=user.username,
         email=user.email,
-        hashed_password=hash_password(user.password)
+        hashed_password=hash_password(user.password),
     )
 
     # Add the new user to db

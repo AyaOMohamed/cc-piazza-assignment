@@ -5,17 +5,19 @@ from pydantic import ValidationError
 from schemas.post import PostCreate, PostResponse, build_post_response
 from constants import TopicName, ReactionName, Status
 
+
 def test_post_create_valid_data():
     data = PostCreate(
         title="Valid post title",
         body="Valid post body",
         topics=[TopicName.TECH],
-        expires_at=datetime(2026, 12, 1, 12, 0)
+        expires_at=datetime(2026, 12, 1, 12, 0),
     )
 
     assert data.title == "Valid post title"
     assert data.body == "Valid post body"
     assert data.topics == [TopicName.TECH]
+
 
 @pytest.mark.parametrize("title", ["", "   "])
 def test_post_create_rejects_whitespace_title(title):
@@ -24,8 +26,9 @@ def test_post_create_rejects_whitespace_title(title):
             title=title,
             body="Valid post body",
             topics=[TopicName.TECH],
-            expires_at=datetime(2026, 12, 1, 12, 0)
+            expires_at=datetime(2026, 12, 1, 12, 0),
         )
+
 
 @pytest.mark.parametrize("body", ["", "   "])
 def test_post_create_rejects_whitespace_body(body):
@@ -34,8 +37,9 @@ def test_post_create_rejects_whitespace_body(body):
             title="Valid post title",
             body=body,
             topics=[TopicName.TECH],
-            expires_at=datetime(2026, 12, 1, 12, 0)
+            expires_at=datetime(2026, 12, 1, 12, 0),
         )
+
 
 @pytest.mark.parametrize("topics", [[], ["Invalid"], [TopicName.TECH, "Invalid"]])
 def test_post_create_rejects_invalid_topic(topics):
@@ -44,16 +48,16 @@ def test_post_create_rejects_invalid_topic(topics):
             title="Python discussion",
             body="Valid post body",
             topics=topics,
-            expires_at=datetime(2026, 12, 1, 12, 0)
+            expires_at=datetime(2026, 12, 1, 12, 0),
         )
+
 
 def test_post_create_missing_expires_at():
     with pytest.raises(ValidationError):
         PostCreate(
-            title="Valid post title",
-            body="Valid post body",
-            topics=[TopicName.TECH]
+            title="Valid post title", body="Valid post body", topics=[TopicName.TECH]
         )
+
 
 def test_post_create_invalid_expires_at():
     with pytest.raises(ValidationError):
@@ -63,6 +67,7 @@ def test_post_create_invalid_expires_at():
             topics=[TopicName.TECH],
             expires_at=datetime.now() - timedelta(days=1),
         )
+
 
 def test_post_response_valid_data():
     post = PostResponse(
@@ -76,7 +81,7 @@ def test_post_response_valid_data():
         status=Status.LIVE,
         like_count=2,
         dislike_count=1,
-        comments=["First comment"]
+        comments=["First comment"],
     )
 
     assert post.id == 1
@@ -86,6 +91,7 @@ def test_post_response_valid_data():
     post.status = Status.LIVE
     assert post.like_count == 2
     assert post.dislike_count == 1
+
 
 def test_post_response_missing_required_field():
     with pytest.raises(ValidationError):
@@ -99,8 +105,9 @@ def test_post_response_missing_required_field():
             status=Status.LIVE,
             like_count=2,
             dislike_count=1,
-            comments=["First comment"]
+            comments=["First comment"],
         )
+
 
 def test_post_response_serialization():
     now = datetime.now()
@@ -116,7 +123,7 @@ def test_post_response_serialization():
         status=Status.LIVE,
         like_count=2,
         dislike_count=1,
-        comments=["First comment"]
+        comments=["First comment"],
     )
 
     result = post.model_dump()
@@ -126,6 +133,7 @@ def test_post_response_serialization():
     assert result["topics"] == [TopicName.TECH]
     assert result["like_count"] == 2
     assert result["dislike_count"] == 1
+
 
 def test_build_post_response():
     now = datetime.now()
@@ -139,19 +147,11 @@ def test_build_post_response():
         created_at=now,
         expires_at=now + timedelta(days=1),
         reactions=[
-            SimpleNamespace(
-                reaction_type=SimpleNamespace(name=ReactionName.LIKE)
-            ),
-            SimpleNamespace(
-                reaction_type=SimpleNamespace(name=ReactionName.LIKE)
-            ),
-            SimpleNamespace(
-                reaction_type=SimpleNamespace(name=ReactionName.DISLIKE)
-            )
+            SimpleNamespace(reaction_type=SimpleNamespace(name=ReactionName.LIKE)),
+            SimpleNamespace(reaction_type=SimpleNamespace(name=ReactionName.LIKE)),
+            SimpleNamespace(reaction_type=SimpleNamespace(name=ReactionName.DISLIKE)),
         ],
-        comments=[
-            SimpleNamespace(body="First comment")
-        ]
+        comments=[SimpleNamespace(body="First comment")],
     )
 
     result = build_post_response(post)
@@ -163,6 +163,7 @@ def test_build_post_response():
     assert result.like_count == 2
     assert result.dislike_count == 1
     assert result.comments == ["First comment"]
+
 
 def test_build_post_response_expired_post():
     now = datetime.now()
@@ -176,7 +177,7 @@ def test_build_post_response_expired_post():
         created_at=now - timedelta(days=2),
         expires_at=now - timedelta(days=1),
         reactions=[],
-        comments=[]
+        comments=[],
     )
 
     result = build_post_response(post)

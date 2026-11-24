@@ -1,6 +1,7 @@
 from constants import ReactionName
 from models import ReactionType
 
+
 def seed_reactions(db):
     for reaction_name in ReactionName:
         existing = (

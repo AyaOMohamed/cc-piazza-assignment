@@ -1,9 +1,7 @@
-
 import pytest
 from datetime import datetime, timedelta
 from unittest.mock import patch
 from constants import TopicName, Status, ReactionName
-
 
 # -------------------------
 # Test users and helpers
@@ -33,10 +31,12 @@ NESTOR = {
     "password": "secret123",
 }
 
+
 def register_user(client, user):
     response = client.post("/auth/register", json=user)
     assert response.status_code == 201
     return response.json()
+
 
 def login_user(client, user):
     response = client.post(
@@ -51,6 +51,7 @@ def login_user(client, user):
     assert response.json()["access_token"]
 
     return response.json()["access_token"]
+
 
 def register_and_login_users(client):
     users = {
@@ -68,8 +69,10 @@ def register_and_login_users(client):
 
     return tokens
 
+
 def auth_headers(token):
     return {"Authorization": f"Bearer {token}"}
+
 
 def create_post(client, token, title, topic=TopicName.TECH.value, expires_at=None):
     if expires_at is None:
@@ -89,12 +92,14 @@ def create_post(client, token, title, topic=TopicName.TECH.value, expires_at=Non
     assert response.status_code == 201
     return response.json()
 
+
 def react_to_post(client, token, post_id, reaction=ReactionName.LIKE.value):
     return client.put(
         f"/posts/{post_id}/reaction",
         json={"reaction": reaction},
         headers=auth_headers(token),
     )
+
 
 def add_comment(client, token, post_id, body):
     return client.post(
@@ -103,11 +108,13 @@ def add_comment(client, token, post_id, body):
         headers=auth_headers(token),
     )
 
+
 def get_post(client, token, post_id):
     return client.get(
         f"/posts/{post_id}",
         headers=auth_headers(token),
     )
+
 
 def get_posts(client, token, topic=None, status=None):
     params = {}
@@ -124,9 +131,11 @@ def get_posts(client, token, topic=None, status=None):
         headers=auth_headers(token),
     )
 
+
 # ----------------------------------
 # TC01–TC02: Registration and login
 # ----------------------------------
+
 
 def test_four_users_register_and_login(client):
     users = [OLGA, NICK, MARY, NESTOR]
@@ -140,9 +149,11 @@ def test_four_users_register_and_login(client):
 
     assert len(tokens) == 4
 
+
 # ----------------------------------
 # TC03–TC13 and TC20: Tech scenario
 # ----------------------------------
+
 
 def test_tech_discussion_scenario(client):
     tokens = register_and_login_users(client)
@@ -181,9 +192,12 @@ def test_tech_discussion_scenario(client):
     # TC09: Nestor likes Nick's post and dislikes Mary's post.
     assert react_to_post(client, nestor, nick_post["id"]).status_code == 200
 
-    assert react_to_post(
-        client, nestor, mary_post["id"], ReactionName.DISLIKE.value
-    ).status_code == 200
+    assert (
+        react_to_post(
+            client, nestor, mary_post["id"], ReactionName.DISLIKE.value
+        ).status_code
+        == 200
+    )
 
     # TC10: Verify reaction counts.
     response = get_post(client, olga, mary_post["id"])
@@ -205,31 +219,32 @@ def test_tech_discussion_scenario(client):
     assert response.status_code == 403
 
     # TC12: Nick and Olga each add at least two comments to Mary's post.
-    assert add_comment(
-        client, nick, mary_post["id"], "Nick's first comment"
-    ).status_code == 201
+    assert (
+        add_comment(client, nick, mary_post["id"], "Nick's first comment").status_code
+        == 201
+    )
 
-    assert add_comment(
-        client, nick, mary_post["id"], "Nick's second comment"
-    ).status_code == 201
+    assert (
+        add_comment(client, nick, mary_post["id"], "Nick's second comment").status_code
+        == 201
+    )
 
-    assert add_comment(
-        client, olga, mary_post["id"], "Olga's first comment"
-    ).status_code == 201
+    assert (
+        add_comment(client, olga, mary_post["id"], "Olga's first comment").status_code
+        == 201
+    )
 
-    assert add_comment(
-        client, olga, mary_post["id"], "Olga's second comment"
-    ).status_code == 201
+    assert (
+        add_comment(client, olga, mary_post["id"], "Olga's second comment").status_code
+        == 201
+    )
 
     # TC13: Browsing reflects the correct counts and comments.
     response = get_posts(client, olga, topic=TopicName.TECH.value)
 
     assert response.status_code == 200
 
-    mary_data = next(
-        post for post in response.json()
-        if post["id"] == mary_post["id"]
-    )
+    mary_data = next(post for post in response.json() if post["id"] == mary_post["id"])
 
     assert mary_data["like_count"] == 2
     assert mary_data["dislike_count"] == 1
@@ -248,9 +263,11 @@ def test_tech_discussion_scenario(client):
     assert len(most_active) == 1
     assert most_active[0]["id"] == mary_post["id"]
 
+
 # -------------------------------------------
 # TC14–TC18: Health post and expiry scenario
 # -------------------------------------------
+
 
 def test_health_post_expiry_scenario(client):
     tokens = register_and_login_users(client)
@@ -328,6 +345,7 @@ def test_health_post_expiry_scenario(client):
 # --------------------------------------------------
 # TC19: Empty expired Sport browsing
 # --------------------------------------------------
+
 
 def test_expired_sport_browsing_returns_empty_list(client):
     tokens = register_and_login_users(client)

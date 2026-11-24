@@ -15,6 +15,7 @@ from unittest.mock import patch
 
 import clock
 
+
 @pytest.fixture
 def client(tmp_path):
     engine = create_engine(
@@ -23,10 +24,7 @@ def client(tmp_path):
     )
     sessions = sessionmaker(bind=engine)
 
-    app = create_app(
-        db_engine=engine,
-        session_factory=sessions
-    )
+    app = create_app(db_engine=engine, session_factory=sessions)
 
     def override_db():
         with sessions() as session:
@@ -39,6 +37,7 @@ def client(tmp_path):
     finally:
         app.dependency_overrides.clear()
         engine.dispose()
+
 
 @pytest.fixture
 def mock_clock():

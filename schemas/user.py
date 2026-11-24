@@ -8,9 +8,7 @@ class UserCreate(BaseModel):
     email: EmailStr
     password: str = Field(min_length=6)
 
-    _validate_body = field_validator("username")(
-        validate_non_empty_text
-    )
+    _validate_body = field_validator("username")(validate_non_empty_text)
 
 
 # Request body for login.

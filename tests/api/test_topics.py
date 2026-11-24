@@ -1,4 +1,3 @@
-
 from datetime import datetime, timedelta
 import time
 
@@ -6,7 +5,6 @@ import pytest
 
 from constants import TopicName, ReactionName, Status
 import clock
-
 
 USER_1 = {
     "username": "user1",
@@ -30,6 +28,7 @@ USER_3 = {
 # Helper functions
 # -------------------------
 
+
 def register_and_login(client, user):
     client.post("/auth/register", json=user)
 
@@ -44,8 +43,10 @@ def register_and_login(client, user):
     assert response.status_code == 200
     return response.json()["access_token"]
 
+
 def auth_headers(token):
     return {"Authorization": f"Bearer {token}"}
+
 
 def create_post(client, token, title, expires_at=None):
     if expires_at is None:
@@ -65,6 +66,7 @@ def create_post(client, token, title, expires_at=None):
     assert response.status_code == 201
     return response.json()
 
+
 def react_to_post(client, token, post_id, reaction=ReactionName.LIKE.value):
     return client.put(
         f"/posts/{post_id}/reaction",
@@ -72,9 +74,11 @@ def react_to_post(client, token, post_id, reaction=ReactionName.LIKE.value):
         headers=auth_headers(token),
     )
 
+
 # -------------------------
 # Most-active post tests
 # -------------------------
+
 
 def test_most_active_returns_empty_list_when_no_live_posts(client):
     token = register_and_login(client, USER_1)
@@ -86,6 +90,7 @@ def test_most_active_returns_empty_list_when_no_live_posts(client):
 
     assert response.status_code == 200
     assert response.json() == []
+
 
 def test_most_active_returns_post_with_most_reactions(client):
     token_1 = register_and_login(client, USER_1)
@@ -114,9 +119,8 @@ def test_most_active_returns_post_with_most_reactions(client):
     assert posts[0]["id"] == post_1["id"]
     assert posts[0]["like_count"] == 2
 
-def test_most_active_returns_newest_post_when_reaction_counts_tie(
-    client, mock_clock
-):
+
+def test_most_active_returns_newest_post_when_reaction_counts_tie(client, mock_clock):
     token_1 = register_and_login(client, USER_1)
     token_2 = register_and_login(client, USER_2)
 
@@ -138,6 +142,7 @@ def test_most_active_returns_newest_post_when_reaction_counts_tie(
     assert response.status_code == 200
     assert response.json()[0]["id"] == post_2["id"]
 
+
 def test_most_active_excludes_expired_posts(client, mock_clock):
     token_1 = register_and_login(client, USER_1)
     token_2 = register_and_login(client, USER_2)
@@ -150,9 +155,7 @@ def test_most_active_excludes_expired_posts(client, mock_clock):
     )
 
     # React while the post is still live.
-    assert react_to_post(
-        client, token_2, expired_post["id"]
-    ).status_code == 200
+    assert react_to_post(client, token_2, expired_post["id"]).status_code == 200
 
     live_post = create_post(client, token_1, "Live post")
 
@@ -170,6 +173,7 @@ def test_most_active_excludes_expired_posts(client, mock_clock):
     assert len(posts) == 1
     assert posts[0]["id"] == live_post["id"]
 
+
 def test_most_active_returns_422_for_invalid_topic(client):
     token = register_and_login(client, USER_1)
 
@@ -179,6 +183,7 @@ def test_most_active_returns_422_for_invalid_topic(client):
     )
 
     assert response.status_code == 422
+
 
 def test_most_active_requires_authentication(client):
     response = client.get("/topics/Tech/most-active")

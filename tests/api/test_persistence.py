@@ -1,4 +1,3 @@
-
 from fastapi.testclient import TestClient
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
@@ -9,42 +8,35 @@ from constants import TopicName
 import clock
 from datetime import datetime, timedelta
 
-USER = {
-    "username": "user1",
-    "email": "user1@example.com",
-    "password": "secret123"
-}
+USER = {"username": "user1", "email": "user1@example.com", "password": "secret123"}
 
 
 # -------------------------
 # Helper functions
 # -------------------------
 
+
 def register_and_login(client, user=USER):
     client.post("/auth/register", json=user)
 
     response = client.post(
-        "/auth/login",
-        json={
-            "email": user["email"],
-            "password": user["password"]
-        }
+        "/auth/login", json={"email": user["email"], "password": user["password"]}
     )
 
     assert response.status_code == 200
     return response.json()["access_token"]
 
+
 def auth_headers(token):
     return {"Authorization": f"Bearer {token}"}
+
 
 def create_post_body(**overrides):
     body = {
         "title": "Test post title",
         "body": "This is a valid test post body.",
         "topics": [TopicName.TECH.value],
-        "expires_at": (
-            clock.get_current_time() + timedelta(days=1)
-        ).isoformat()
+        "expires_at": (clock.get_current_time() + timedelta(days=1)).isoformat(),
     }
 
     # Convert datetime overrides to ISO format for JSON serialization.
@@ -54,9 +46,11 @@ def create_post_body(**overrides):
     body.update(overrides)
     return body
 
+
 # -------------------------
 # Data persistence tests
 # -------------------------
+
 
 def test_data_persists_after_reopening_application(tmp_path):
     database_path = tmp_path / "persistence-test.db"
