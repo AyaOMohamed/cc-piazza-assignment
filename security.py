@@ -17,8 +17,8 @@ from database import get_db
 SECRET_KEY = os.environ["JWT_SECRET"]
 if len(SECRET_KEY) < 32:
     raise RuntimeError("JWT_SECRET must contain at least 32 characters")
-ALGORITHM = "HS256"
-ACCESS_TOKEN_EXPIRE_MINUTES = 30
+ALGORITHM = os.environ.get("JWT_ALGORITHM", "HS256")
+ACCESS_TOKEN_EXPIRE_MINUTES = int(os.environ.get("ACCESS_TOKEN_EXPIRE_MINUTES", 30))
 
 bearer_scheme = HTTPBearer(auto_error=False)
 password_context = PasswordHash.recommended()

@@ -75,8 +75,8 @@ pip install -r requirements.txt
 
 Configure the JWT secret before starting the application.
 
-```env
-JWT_SECRET=your-secure-secret-key-of-at-least-32-characters
+```
+export JWT_SECRET=your-secure-secret-key-of-at-least-32-characters
 ```
 
 Use a secure secret in production. Do not commit secrets or production credentials to version control.
@@ -318,3 +318,58 @@ GET /health
 ```
 
 It returns a welcome message to confirm that the API is running.
+
+## Running with Docker
+
+### Prerequisites
+
+- Docker Desktop installed and running.
+
+### 1. Configure environment variables
+
+Copy the example configuration:
+
+```bash
+cp .env.example .env
+```
+
+Edit `.env` and provide the required configuration values.
+
+### 2. Build the Docker image
+
+```bash
+docker build -t piazza-assignment:1 .
+```
+
+### 3. Run the container
+
+```bash
+docker run -d --name piazza-api -p 80:8000 --env-file .env piazza-assignment:1
+```
+
+### 4. Check the application
+
+Open:
+
+```text
+http://localhost/health
+```
+
+Expected response:
+
+```json
+{"message": "Welcome to Piazza!"}
+```
+
+### 5. Stop and remove the container
+
+```bash
+docker stop piazza-api
+docker rm piazza-api
+```
+
+### 6. Remove the Docker image (optional)
+
+```bash
+docker rmi piazza-assignment:1
+```
